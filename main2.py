@@ -1,9 +1,9 @@
-from flask import Flask
+from flask import Flask, request, render_template
 app = Flask(__name__)
 
 @app.route('/')
 def index():
-    return 'Hello Flask'
+    return render_template('index.html', name='Jerry')
 
 @app.route('/user/<int:user_id>/')
 def user_profile(user_id):
