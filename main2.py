@@ -4,16 +4,25 @@ from forms import ContactForm
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate, MigrateCommand
+from flask_mail import Mail, Message
+from threading import Thread 
 
 app = Flask(__name__)
 app.debug = True
 app.config['SECRET_KEY'] = 'a really really really really long secret key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:pass@localhost/flask_app_db'
+app.config['MAIL_SERVER'] = 'smtp.googlemail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'infooveriq@gmail.com'  # enter your email here
+app.config['MAIL_DEFAULT_SENDER'] = 'infooveriq@gmail.com' # enter your email here
+app.config['MAIL_PASSWORD'] = 'password' # enter your password here
 
 manager = Manager(app)
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 manager.add_command('db', MigrateCommand)
+mail = Mail(app)
 
 class Faker(Command):
     'A command to add fake data to the tables'
@@ -34,6 +43,17 @@ def shell_context():
 
 manager.add_command("shell", Shell(make_context=shell_context))
     
+def async_send_mail(app, msg):
+    with app.app_context():
+        mail.send(msg)
+
+
+def send_mail(subject, recipient, template, **kwargs):
+    msg = Message(subject, sender=app.config['MAIL_DEFAULT_SENDER'], recipients=[recipient])
+    msg.html = render_template(template, **kwargs)
+    thr = Thread(target=async_send_mail, args=[app, msg])
+    thr.start()
+    return thr
 
 @app.route('/')
 def index():
@@ -76,6 +96,9 @@ def contact():
         feedback = Feedback(name=name, email=email, message=message)
         db.session.add(feedback)
         db.session.commit()
+        
+        send_mail("New Feedback", app.config['MAIL_DEFAULT_SENDER'], 'mail/feedback.html',
+                  name=name, email=email)
         
         print("\nData received. Now redirecting ...")
         flash("Message Received", "success")
