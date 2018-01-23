@@ -68,7 +68,12 @@ def contact():
         print(name)
         print(email)
         print(message)
+                
         # db logic goes here
+        feedback = Feedback(name=name, email=email, message=message)
+        db.session.add(feedback)
+        db.session.commit()
+        
         print("\nData received. Now redirecting ...")
         flash("Message Received", "success")
         return redirect(url_for('contact'))
@@ -132,8 +137,8 @@ class Category(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(255), nullable=False)
     slug = db.Column(db.String(255), nullable=False)
-    created_on = db.Column(db.DateTime(), default=datetime.utcnow)
-    posts = db.relationship('Post', backref='category')
+    created_on = db.Column(db.DateTime(), default=datetime.utcnow)    
+    posts = db.relationship('Post', backref='category', cascade='all,delete-orphan')    
 
     def __repr__(self):
         return "<{}:{}>".format(self.id, self.name)
@@ -166,6 +171,17 @@ class Tag(db.Model):
 
     def __repr__(self):
         return "<{}:{}>".format(self.id, self.name)    
+
+class Feedback(db.Model):
+    __tablename__ = 'feedbacks'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(1000), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text(), nullable=False)
+    created_on = db.Column(db.DateTime(), default=datetime.utcnow)
+ 
+    def __repr__(self):
+        return "<{}:{}>".format(self.id, self.name)
 
 if __name__ == "__main__":
     manager.run()
