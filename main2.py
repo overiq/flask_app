@@ -1,11 +1,13 @@
 from flask import Flask, request, render_template, redirect, url_for, flash, make_response, session
 from flask_script import Manager, Command, Shell
-from forms import ContactForm
+from forms import ContactForm, LoginForm
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from flask_migrate import Migrate, MigrateCommand
 from flask_mail import Mail, Message
-from threading import Thread 
+from threading import Thread
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_login import LoginManager, UserMixin, login_required, login_user, current_user, logout_user
 
 app = Flask(__name__)
 app.debug = True
@@ -23,6 +25,8 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 manager.add_command('db', MigrateCommand)
 mail = Mail(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
 
 class Faker(Command):
     'A command to add fake data to the tables'
@@ -69,17 +73,25 @@ def books(genre):
 
 @app.route('/login/', methods=['post', 'get'])
 def login():
-    message = ''
-    if request.method == 'POST':
-        username = request.form.get('username')  # access the data inside 
-        password = request.form.get('password')
+    if current_user.is_authenticated:
+        return redirect(url_for('admin'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = db.session.query(User).filter(User.username == form.username.data).first()
+        if user and user.check_password(form.password.data):
+            login_user(user, remember=form.remember.data)
+            return redirect(url_for('admin'))
 
-        if username == 'root' and password == 'pass':
-            message = "Correct username and password"
-        else:
-            message = "Wrong username or password"
+        flash("Invalid username/password", 'error')
+        return redirect(url_for('login'))
+    return render_template('login.html', form=form)
 
-    return render_template('login.html', message=message)
+@app.route('/logout/')
+@login_required
+def logout():
+    logout_user()    
+    flash("You have been logged out.")
+    return redirect(url_for('login'))
 
 @app.route('/contact/', methods=['get', 'post'])
 def contact():
@@ -158,6 +170,11 @@ def updating_session():
 
     return res
 
+@app.route('/admin/')
+@login_required
+def admin():
+    return render_template('admin.html')
+
 class Category(db.Model):
     __tablename__ = 'categories'
     id = db.Column(db.Integer(), primary_key=True)
@@ -215,6 +232,29 @@ class Employee(db.Model):
     name = db.Column(db.String(255), nullable=False)
     designation = db.Column(db.String(255), nullable=False)
     doj = db.Column(db.Date(), nullable=False)        
+
+@login_manager.user_loader
+def load_user(user_id):
+    return db.session.query(User).get(user_id)
+
+class User(db.Model, UserMixin):
+    __tablename__ = 'users'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(100))
+    username = db.Column(db.String(50), nullable=False, unique=True)
+    email = db.Column(db.String(100), nullable=False, unique=True)
+    password_hash = db.Column(db.String(100), nullable=False)
+    created_on = db.Column(db.DateTime(), default=datetime.utcnow)
+    updated_on = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return "<{}:{}>".format(self.id, self.username)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)    
 
 if __name__ == "__main__":
     manager.run()
