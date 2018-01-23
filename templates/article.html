@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Article</title>
+</head>
+<body style="{% if request.cookies.get('font') %}font-family:{{ request.cookies.get('font') }}{% endif %}">
+
+Select Font Preference: <br>
+<form action="" method="post">
+    <select name="font" onchange="submit()">
+        <option value="">----</option>
+        <option value="consolas" {% if request.cookies.get('font') == 'consolas' %}selected{% endif %}>consolas</option>
+        <option value="arial" {% if request.cookies.get('font') == 'arial' %}selected{% endif %}>arial</option>
+        <option value="verdana" {% if request.cookies.get('font') == 'verdana' %}selected{% endif %}>verdana</option>
+    </select>
+</form>
+
+<h1>Festus, superbus toruss diligenter tractare de brevis, dexter olla.</h1>
+
+<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Aperiam blanditiis debitis doloribus eos magni minus odit, provident tempora. Expedita fugiat harum in incidunt minus nam nesciunt voluptate. Facilis nesciunt, similique!
+</p>
+
+<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Alias amet animi aperiam inventore molestiae quos, reiciendis voluptatem. Ab, cum cupiditate fugit illo incidunt ipsa neque quam, qui quidem vel voluptatum.</p>
+
+</body>
+</html>
