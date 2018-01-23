@@ -3,6 +3,7 @@ from flask_script import Manager, Command, Shell
 from forms import ContactForm
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from flask_migrate import Migrate, MigrateCommand
 
 app = Flask(__name__)
 app.debug = True
@@ -11,6 +12,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:pass@localhost/fla
 
 manager = Manager(app)
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+manager.add_command('db', MigrateCommand)
 
 class Faker(Command):
     'A command to add fake data to the tables'
@@ -182,6 +185,13 @@ class Feedback(db.Model):
  
     def __repr__(self):
         return "<{}:{}>".format(self.id, self.name)
+    
+class Employee(db.Model):
+    __tablename__ = 'employees'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(255), nullable=False)
+    designation = db.Column(db.String(255), nullable=False)
+    doj = db.Column(db.Date(), nullable=False)        
 
 if __name__ == "__main__":
     manager.run()
